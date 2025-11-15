@@ -30,8 +30,9 @@ fi
 echo "Using audio source: $MONITOR_DEVICE"
 echo "Streaming to: http://${ICECAST_HOST}:${ICECAST_PORT}/${MOUNT_POINT}"
 
-# Stream using FFmpeg
+# Stream using FFmpeg low-latency settings
 ffmpeg -f pulse -i "$MONITOR_DEVICE" \
+    -fflags nobuffer -flags low_delay \
     -acodec libmp3lame -ab $BITRATE -ar $SAMPLE_RATE -ac $CHANNELS \
     -content_type audio/mpeg \
     -ice_name "$STREAM_NAME" \
