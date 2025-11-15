@@ -1,0 +1,17 @@
+[Unit]
+Description=Kai Radio Audio Stream
+After=network.target icecast2.service pulseaudio.service
+Requires=icecast2.service
+
+[Service]
+Type=simple
+User=ivan
+Environment="PULSE_RUNTIME_PATH=/run/user/1000/pulse/"
+ExecStart=/home/ivan/Projects/kai-radio/stream-audio.sh
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
