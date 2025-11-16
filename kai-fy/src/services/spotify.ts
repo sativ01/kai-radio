@@ -1,12 +1,8 @@
-import {
-  type Track,
-  type PlaybackState,
-  PlaybackAction,
-} from "../types/spotify";
+// src/services/spotify.ts - Simplified version for KaiOS
+import { type Track, type PlaybackState } from "../types/spotify";
 
 export class SpotifyController {
-  private baseUrl = "https://api.spotify.com/v1";
-  private accessToken: string | null = null;
+  private baseUrl: string;
   private currentState: PlaybackState = {
     isPlaying: false,
     track: null,
@@ -14,61 +10,49 @@ export class SpotifyController {
   };
 
   constructor() {
-    this.loadAccessToken();
-  }
+    // Auto-detect environment
+    // Change this IP to your computer/RPi IP for real device testing
+    const localIP = "192.168.1.100"; // UPDATE THIS
+    const isDev = window.location.hostname === "localhost";
 
-  private loadAccessToken(): void {
-    // Load from localStorage or prompt user
-    this.accessToken = localStorage.getItem("spotify_access_token");
-  }
+    this.baseUrl = isDev
+      ? "http://localhost:3000/api"
+      : `http://${localIP}:3000/api`;
 
-  public setAccessToken(token: string): void {
-    this.accessToken = token;
-    localStorage.setItem("spotify_access_token", token);
+    console.log("Spotify API base URL:", this.baseUrl);
   }
 
   public async getCurrentTrack(): Promise<Track | null> {
-    if (!this.accessToken) {
-      console.warn("No access token available");
-      return null;
-    }
-
     try {
-      const response = await fetch(
-        `${this.baseUrl}/me/player/currently-playing`,
-        {
-          headers: {
-            Authorization: `Bearer ${this.accessToken}`,
-          },
+      const response = await fetch(`${this.baseUrl}/current-track`, {
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+      });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          console.error("Access token expired or invalid");
-          return null;
-        }
-        throw new Error(`Failed to fetch current track: ${response.status}`);
-      }
-
-      if (response.status === 204) {
-        // No track currently playing
+        console.warn("Failed to fetch current track:", response.status);
         return null;
       }
 
       const data = await response.json();
 
+      if (!data) {
+        // No track currently playing
+        return null;
+      }
+
       const track: Track = {
-        id: data.item.id,
-        name: data.item.name,
-        artist: data.item.artists.map((a: any) => a.name).join(", "),
-        album: data.item.album.name,
-        albumArt: data.item.album.images[0]?.url,
-        duration: data.item.duration_ms,
-        position: data.progress_ms,
+        id: data.id,
+        name: data.name,
+        artist: data.artist,
+        album: data.album,
+        albumArt: data.albumArt,
+        duration: data.duration,
+        position: data.position,
       };
 
-      this.currentState.isPlaying = data.is_playing;
+      this.currentState.isPlaying = data.isPlaying;
       this.currentState.track = track;
 
       return track;
@@ -79,64 +63,35 @@ export class SpotifyController {
   }
 
   public async play(): Promise<void> {
-    await this.sendPlaybackCommand(PlaybackAction.PLAY);
+    await this.sendPlaybackCommand("play");
   }
 
   public async pause(): Promise<void> {
-    await this.sendPlaybackCommand(PlaybackAction.PAUSE);
+    await this.sendPlaybackCommand("pause");
   }
 
   public async togglePlayPause(): Promise<void> {
-    if (this.currentState.isPlaying) {
-      await this.pause();
-    } else {
-      await this.play();
-    }
+    await this.sendPlaybackCommand("toggle");
   }
 
   public async nextTrack(): Promise<void> {
-    await this.sendPlaybackCommand(PlaybackAction.NEXT);
+    await this.sendPlaybackCommand("next");
   }
 
   public async previousTrack(): Promise<void> {
-    await this.sendPlaybackCommand(PlaybackAction.PREVIOUS);
+    await this.sendPlaybackCommand("previous");
   }
 
-  private async sendPlaybackCommand(action: PlaybackAction): Promise<void> {
-    if (!this.accessToken) {
-      console.warn("No access token available");
-      return;
-    }
-
+  private async sendPlaybackCommand(action: string): Promise<void> {
     try {
-      let endpoint = "";
-      let method = "PUT";
-
-      switch (action) {
-        case PlaybackAction.PLAY:
-          endpoint = "/me/player/play";
-          break;
-        case PlaybackAction.PAUSE:
-          endpoint = "/me/player/pause";
-          break;
-        case PlaybackAction.NEXT:
-          endpoint = "/me/player/next";
-          method = "POST";
-          break;
-        case PlaybackAction.PREVIOUS:
-          endpoint = "/me/player/previous";
-          method = "POST";
-          break;
-      }
-
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        method,
+      const response = await fetch(`${this.baseUrl}/${action}`, {
+        method: "POST",
         headers: {
-          Authorization: `Bearer ${this.accessToken}`,
+          "Content-Type": "application/json",
         },
       });
 
-      if (!response.ok && response.status !== 204) {
+      if (!response.ok) {
         throw new Error(`Playback command failed: ${response.status}`);
       }
 
