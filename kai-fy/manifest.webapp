@@ -1,0 +1,31 @@
+{
+  "name": "Kai-fy",
+  "description": "Spotify Playback Controller for KaiOS",
+  "version": "1.0.0",
+  "launch_path": "/index.html",
+  "icons": {
+    "56": "/icons/icon-56.png",
+    "112": "/icons/icon-112.png"
+  },
+  "developer": {
+    "name": "Your Name",
+    "url": "https://github.com/yourusername"
+  },
+  "type": "privileged",
+  "permissions": {
+    "systemXHR": {
+      "description": "Required to communicate with Spotify API"
+    },
+    "storage": {
+      "description": "Required to store access tokens"
+    }
+  },
+  "messages": [
+    { "alarm": "/index.html" }
+  ],
+  "orientation": "portrait",
+  "fullscreen": "false",
+  "chrome": {
+    "navigation": true
+  }
+}
